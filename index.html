@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mobile POS Express</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],heading:['Plus Jakarta Sans','sans-serif']},colors:{brand:{50:'#f0f3ff',100:'#e0e7ff',200:'#c7d2fe',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'}}}}}
+</script>
+<style>
+body{font-family:'Inter',sans-serif;touch-action:manipulation;user-select:none;-webkit-user-select:none;background:linear-gradient(135deg,#0f172a,#1e1b4b 50%,#0f172a)}
+.glass-panel{background:rgba(255,255,255,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.4)}
+.pbtn{-webkit-touch-callout:none;touch-action:pan-y}
+.t:active{transform:scale(.96)}.t{transition:transform .1s}
+input{user-select:text;-webkit-user-select:text}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
+</style>
+</head>
+<body class="flex justify-center items-center min-h-screen p-0 sm:p-4 text-slate-800">
+<div id="app" class="w-full max-w-md h-screen sm:h-[844px] bg-slate-900 flex flex-col shadow-2xl relative overflow-hidden sm:rounded-[40px] border-0 sm:border-[8px] border-slate-800">
+
+  <div class="bg-slate-900 px-4 py-2.5 text-white flex justify-between items-center border-b border-slate-800 shrink-0">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+      <span class="font-bold tracking-wide text-slate-200 text-[11px]">Mobile POS Express</span>
+    </div>
+    <button id="sync-badge" onclick="openCloud()" class="flex items-center gap-1 text-[11px] bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700"></button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="flex flex-col flex-1 min-h-0 bg-slate-100 p-3 gap-3">
+    <div class="glass-panel rounded-2xl flex flex-col h-[38%] shadow-lg overflow-hidden shrink-0">
+      <div class="bg-slate-900/90 px-3 py-2 text-white font-bold text-xs flex justify-between items-center">
+        <div class="flex items-center gap-2"><i class="fa-solid fa-cart-shopping text-brand-400"></i><span>Shopping List</span>
+          <span id="cart-count" class="bg-brand-500 text-[10px] font-extrabold px-2 py-0.5 rounded-full">0</span></div>
+        <button onclick="clearCart()" class="text-[11px] text-rose-300 flex items-center gap-1"><i class="fa-solid fa-trash-can"></i> Clear all</button>
+      </div>
+      <div id="cart-items" class="flex-1 overflow-y-auto p-2 divide-y divide-slate-100"></div>
+      <div class="bg-white/90 border-t border-slate-200 p-2.5 flex flex-col gap-2">
+        <div class="flex justify-between items-center px-1">
+          <span class="text-xs text-slate-500 font-bold">Total</span>
+          <span id="cart-total" class="text-xl font-heading font-extrabold text-slate-900">₱0.00</span>
+        </div>
+        <button id="btn-checkout" onclick="openCheckout()" disabled class="w-full bg-gradient-to-r from-brand-600 to-indigo-700 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-md text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cash-register"></i> Proceed to checkout</button>
+      </div>
+    </div>
+
+    <div class="glass-panel rounded-2xl p-2.5 flex-1 min-h-0 flex flex-col shadow-lg">
+      <div class="relative mb-2">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input id="search" type="search" placeholder="Search products" oninput="searchQ=this.value;renderGrid()" class="w-full text-xs border border-slate-300 rounded-xl py-2 pl-8 pr-3 bg-white focus:outline-none focus:border-brand-500">
+      </div>
+      <div class="text-[10px] text-slate-500 mb-1.5 px-1 flex justify-between items-center font-medium">
+        <span><i class="fa-solid fa-circle-info text-brand-500"></i> Tap = add 1 · Hold = custom qty</span>
+        <span id="prod-badge" class="font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100"></span>
+      </div>
+      <div id="grid" class="grid grid-cols-2 gap-2 overflow-y-auto flex-1 content-start pr-1"></div>
+    </div>
+
+    <div class="glass-panel rounded-2xl p-2 flex gap-2 shadow-lg text-xs font-bold shrink-0">
+      <button onclick="openEdit()" class="t flex-1 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-center gap-1.5"><i class="fa-solid fa-sliders text-brand-600"></i> Edit catalog</button>
+      <button onclick="openCloud()" class="t flex-1 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-center gap-1.5"><i class="fa-solid fa-table-cells text-emerald-600"></i> Cloud sync</button>
+    </div>
+  </div>
+
+  <!-- CHECKOUT -->
+  <div id="view-checkout" class="hidden absolute inset-0 bg-slate-50 flex flex-col z-20">
+    <div class="bg-slate-900 p-3 text-white flex justify-between items-center shrink-0">
+      <button onclick="closeCheckout()" class="text-slate-300 text-xs flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700"><i class="fa-solid fa-chevron-left"></i> Back</button>
+      <h2 class="font-heading font-bold text-base">Payment</h2><div class="w-14"></div>
+    </div>
+    <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5">
+      <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm">
+        <div class="flex justify-between mb-1.5 pb-1 border-b border-slate-100 text-xs font-semibold text-slate-500"><span>Order summary</span><span id="co-count"></span></div>
+        <div id="co-list" class="space-y-1 max-h-24 overflow-y-auto text-xs divide-y divide-slate-100 pr-1"></div>
+        <div class="border-t border-slate-200 pt-2 mt-2 flex justify-between items-center font-heading">
+          <span class="text-xs font-bold text-slate-600">Total due</span><span id="co-total" class="text-2xl font-extrabold text-slate-900"></span></div>
+      </div>
+      <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm flex-1 flex flex-col">
+        <div id="methods" class="grid grid-cols-3 gap-1.5 mb-2"></div>
+        <div class="relative mb-2">
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xl">₱</span>
+          <input id="paid" readonly value="0" class="w-full text-right text-2xl font-heading font-extrabold py-2 pl-8 pr-3 border-2 border-slate-800 rounded-xl bg-slate-50 focus:outline-none">
+        </div>
+        <div class="flex justify-between items-center mb-2 py-1.5 bg-slate-50 rounded-xl border border-slate-200 px-3">
+          <span class="text-xs font-bold text-slate-500">Change:</span><span id="co-change" class="font-heading font-bold"></span>
+        </div>
+        <div id="pad-wrap" class="flex flex-col flex-1">
+          <div id="presets" class="grid grid-cols-6 gap-1 mb-2"></div>
+          <div id="keypad" class="grid grid-cols-3 gap-1.5 flex-1 min-h-[170px]"></div>
+        </div>
+      </div>
+    </div>
+    <div class="p-3 bg-white border-t border-slate-200 shrink-0">
+      <button id="btn-done" onclick="completeSale()" class="t w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-3 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-circle-check text-lg"></i> Complete &amp; log sale</button>
+    </div>
+  </div>
+
+  <!-- QTY -->
+  <div id="m-qty" class="hidden absolute inset-0 bg-slate-950/70 z-40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-xs p-4 shadow-2xl flex flex-col gap-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <div><h3 id="qty-name" class="font-heading font-bold text-base"></h3><p id="qty-price" class="text-xs font-semibold text-emerald-600"></p></div>
+        <button onclick="closeQty()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="bg-slate-100 rounded-xl p-2.5 text-center border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400">Custom quantity</span>
+        <input id="qty-input" readonly value="1" class="w-full text-center text-3xl font-heading font-extrabold bg-transparent focus:outline-none">
+      </div>
+      <div id="qty-pad" class="grid grid-cols-3 gap-1.5"></div>
+      <button onclick="confirmQty()" class="t w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i> Add to list</button>
+    </div>
+  </div>
+
+  <!-- CATALOG -->
+  <div id="m-edit" class="hidden absolute inset-0 bg-slate-950/70 z-40 flex items-center justify-center p-3">
+    <div class="bg-white rounded-3xl w-full max-w-sm h-[90%] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-slate-900 p-3.5 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2"><i class="fa-solid fa-boxes-stacked text-brand-400"></i><h3 class="font-heading font-bold text-sm">Product catalog</h3></div>
+        <button onclick="el('m-edit').classList.add('hidden')" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <div class="p-3 bg-slate-50 border-b border-slate-200">
+        <h4 id="edit-title" class="text-[11px] font-bold text-slate-500 mb-2">Add product</h4>
+        <input type="hidden" id="e-id">
+        <div class="flex gap-2 mb-2">
+          <input id="e-name" placeholder="Item name" class="flex-1 text-xs border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-brand-500">
+          <input id="e-price" type="number" step="0.01" inputmode="decimal" placeholder="Price (₱)" class="w-24 text-xs border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-brand-500">
+        </div>
+        <div class="flex gap-2">
+          <button onclick="saveProduct()" class="t flex-1 bg-brand-600 text-white font-bold py-2 rounded-xl text-xs">Save item</button>
+          <button id="e-cancel" onclick="resetForm()" class="hidden px-3 bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-xs">Cancel</button>
+        </div>
+      </div>
+      <div id="edit-list" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-100"></div>
+    </div>
+  </div>
+
+  <!-- CLOUD -->
+  <div id="m-cloud" class="hidden absolute inset-0 bg-slate-950/70 z-40 flex items-center justify-center p-3">
+    <div class="bg-white rounded-3xl w-full max-w-sm h-[90%] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-slate-900 p-3.5 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i><h3 class="font-heading font-bold text-sm">Google Sheets sync</h3></div>
+        <button onclick="el('m-cloud').classList.add('hidden')" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <div class="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+        <div><div class="text-[10px] font-bold text-slate-400">Total revenue (all devices)</div><div id="cl-total" class="font-heading font-extrabold text-emerald-600 text-lg"></div><div id="cl-today" class="text-[10px] text-slate-500 font-semibold"></div></div>
+        <div class="flex gap-1.5">
+          <button onclick="syncAll(true)" class="t bg-emerald-600 text-white text-xs px-3 py-2 rounded-xl font-bold flex items-center gap-1.5"><i class="fa-solid fa-rotate"></i> Sync now</button>
+          <button onclick="exportCSV()" class="t bg-slate-800 text-white text-xs px-3 py-2 rounded-xl font-bold"><i class="fa-solid fa-file-csv text-emerald-400"></i> CSV</button>
+        </div>
+      </div>
+      <div class="p-3 border-b border-slate-200">
+        <label class="block text-[10px] font-bold text-slate-400 mb-1">Apps Script web app URL</label>
+        <div class="flex gap-1.5">
+          <input id="url-input" class="flex-1 min-w-0 text-[11px] border border-slate-300 rounded-xl p-2 bg-slate-50 font-mono focus:outline-none focus:border-brand-500">
+          <button onclick="saveUrl()" class="t bg-slate-800 text-white text-xs px-3 py-2 rounded-xl font-bold">Save</button>
+        </div>
+        <div class="flex justify-between items-center mt-2 text-[11px]">
+          <span id="cl-status" class="font-bold"></span>
+          <button onclick="testConn()" class="text-brand-600 underline font-semibold">Test connection</button>
+        </div>
+      </div>
+      <div class="px-3 py-2 border-b border-slate-200">
+        <div class="flex gap-1.5">
+          <button id="btn-upload-all" onclick="uploadAllLocal()" class="t flex-1 bg-white border border-slate-300 text-slate-700 text-[11px] px-2 py-2 rounded-xl font-bold"></button>
+          <button onclick="checkUpdate(true)" class="t bg-white border border-slate-300 text-slate-700 text-[11px] px-3 py-2 rounded-xl font-bold"><i class="fa-solid fa-arrows-rotate text-brand-600"></i> Check for update</button>
+        </div>
+        <div id="cl-ver" class="text-[10px] text-slate-400 mt-1.5"></div>
+      </div>
+      <div class="flex-1 overflow-auto p-2 bg-slate-50">
+        <div id="cl-head" class="text-[11px] font-bold text-slate-400 mb-2 px-1">Transaction log</div>
+        <table class="w-full text-left text-xs bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200">
+          <thead><tr class="bg-slate-100 text-slate-600 text-[10px] font-bold"><th class="p-2">Time</th><th class="p-2">Items</th><th class="p-2">Pay</th><th class="p-2 text-right">Total</th></tr></thead>
+          <tbody id="cl-body" class="divide-y divide-slate-100 text-[11px]"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SALE DETAIL -->
+  <div id="m-sale" class="hidden absolute inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-3">
+    <div class="bg-white rounded-3xl w-full max-w-sm max-h-[92%] flex flex-col shadow-2xl overflow-hidden">
+      <div class="bg-slate-900 p-3.5 text-white flex justify-between items-center">
+        <div class="min-w-0"><h3 class="font-heading font-bold text-sm">Sale details</h3><div id="sd-id" class="text-[10px] text-slate-400 font-mono truncate"></div></div>
+        <button onclick="closeSale()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400 shrink-0"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <div id="sd-void" class="hidden bg-rose-50 text-rose-600 text-[11px] font-bold px-3 py-1.5">This sale is voided and is not counted in totals.</div>
+      <div id="sd-time" class="px-3 pt-2 text-[11px] text-slate-500"></div>
+      <div id="sd-lines" class="flex-1 overflow-y-auto p-3 space-y-2"></div>
+      <div class="p-3 border-t border-slate-200 space-y-2 bg-slate-50">
+        <div id="sd-edit" class="space-y-2">
+          <div class="flex gap-2"><select id="sd-add" class="flex-1 min-w-0 text-xs border border-slate-300 rounded-xl p-2 bg-white"></select>
+            <button onclick="sdAdd()" class="t px-3 bg-slate-800 text-white rounded-xl text-xs font-bold">Add item</button></div>
+          <div id="sd-methods" class="grid grid-cols-3 gap-1.5"></div>
+        </div>
+        <div class="flex justify-between items-center"><span class="text-xs font-bold text-slate-500">Total</span><span id="sd-total" class="font-heading font-extrabold text-lg"></span></div>
+        <div class="flex gap-2">
+          <button id="sd-save" onclick="saveSale()" class="t flex-1 bg-brand-600 text-white font-bold py-2.5 rounded-xl text-xs">Save changes</button>
+          <button id="sd-voidbtn" onclick="toggleVoid()" class="t flex-1 bg-rose-50 text-rose-600 border border-rose-200 font-bold py-2.5 rounded-xl text-xs"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECEIPT -->
+  <div id="m-ty" class="hidden absolute inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-xs p-5 shadow-2xl flex flex-col items-center text-center gap-4">
+      <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl"><i class="fa-solid fa-check"></i></div>
+      <div><h2 class="text-xl font-heading font-extrabold">Sale complete</h2><p id="ty-sync" class="text-[11px] font-semibold mt-1"></p></div>
+      <div class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-[11px] space-y-1 text-left font-mono text-slate-600">
+        <div class="flex justify-between"><span>Date/time</span><b id="ty-time"></b></div>
+        <div class="flex justify-between"><span>Items</span><b id="ty-items"></b></div>
+        <div class="flex justify-between"><span>Method</span><b id="ty-method"></b></div>
+        <div class="border-t border-dashed border-slate-300 pt-1 flex justify-between"><span>Total</span><b id="ty-total"></b></div>
+        <div class="flex justify-between"><span>Paid</span><b id="ty-paid"></b></div>
+        <div class="border-t border-slate-300 pt-1 flex justify-between text-emerald-600 font-bold text-sm"><span>Change</span><span id="ty-change"></span></div>
+      </div>
+      <button onclick="finishSale()" class="t w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl text-xs flex items-center justify-center gap-2">Next sale <i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden absolute top-12 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-2xl z-[60] border border-slate-700 pointer-events-none max-w-[90%] text-center"></div>
+</div>
+
+<script>
+const APP_VERSION='2026-10-25.2';
+const DEFAULT_URL="https://script.google.com/macros/s/AKfycbyQ0yJXxgz-inZocAFVsYAJUzRPnEU334XfkzKpPQqilcydy77zncRYEyPcXhw9ccuH/exec";
+const DEFAULT_PRODUCTS=[25,50,75,100,150,200].map((p,i)=>({id:i+1,name:'Product '+(i+1),price:p,updatedAt:0}));
+const METHODS=[['Cash','fa-money-bill-wave'],['GCash','fa-mobile-screen'],['Card','fa-credit-card']];
+
+const el=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'₱'+(Number(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const round2=n=>Math.round(n*100)/100;
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+let products=ls.get('pos_products',null),seed=false;
+if(!products){products=DEFAULT_PRODUCTS.map(p=>({...p}));seed=true}else seed=ls.get('pos_seed',false);
+let salesHistory=ls.get('pos_sales_history',[]);
+let queue=ls.get('pos_pending_sync',[]);
+let prodDirty=ls.get('pos_products_dirty',false),prodVer=0;
+let sheetUrl=ls.get('pos_sheet_url',DEFAULT_URL)||DEFAULT_URL;
+let clockOff=ls.get('pos_clock_off',0);            // server time minus this device's clock
+let srvV=ls.get('pos_srv_v',0);                    // 2 = Apps Script has the new Code.gs
+let serverIds=(a=>a?new Set(a):null)(ls.get('pos_server_ids',null));
+let cloudLight=ls.get('pos_cloud_light',null);   // [id, amount] of every non-void sale in the sheet
+let lastErr='',cart=[],searchQ='',paidStr='0',method='Cash',qtyProduct=null,syncState='idle',syncing=false,completing=false,toastT,updateReady=false;
+const nowC=()=>Date.now()+clockOff;                // corrected time: does not depend on the device clock being right
+const live=()=>products.filter(p=>!p.deleted);
+
+/* ---------- toast ---------- */
+function toast(m){const t=el('toast');t.textContent=m;t.classList.remove('hidden');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.add('hidden'),2400)}
+
+/* ---------- keypads (built once) ---------- */
+const keyCls='t font-heading font-bold text-lg rounded-xl bg-slate-100 text-slate-800 shadow-sm';
+el('keypad').innerHTML=['1','2','3','4','5','6','7','8','9','00','0','DEL'].map(k=>
+  `<button data-k="${k}" class="${keyCls}${k==='DEL'?' !bg-rose-50 !text-rose-600':''}">${k==='DEL'?'<i class="fa-solid fa-delete-left"></i>':k}</button>`).join('');
+el('keypad').onclick=e=>{const b=e.target.closest('button');if(b)keypad(b.dataset.k)};
+el('presets').innerHTML=[['Exact',0],['₱50',50],['₱100',100],['₱200',200],['₱500',500],['₱1k',1000]].map(([l,v])=>
+  `<button data-v="${v}" class="t py-1.5 rounded-lg text-xs font-bold ${v?'bg-slate-100 border border-slate-200':'bg-brand-50 text-brand-700 border border-brand-200'}">${l}</button>`).join('');
+el('presets').onclick=e=>{const b=e.target.closest('button');if(!b)return;const v=+b.dataset.v;paidStr=String(v||total());drawPay()};
+el('qty-pad').innerHTML=['1','2','3','4','5','6','7','8','9','CLR','0','DEL'].map(k=>
+  `<button data-k="${k}" class="t p-2.5 border rounded-xl font-bold text-base ${k==='CLR'?'text-rose-500 bg-rose-50 text-xs':''}">${k==='DEL'?'<i class="fa-solid fa-delete-left text-slate-600"></i>':k}</button>`).join('');
+let qtyFresh=true;
+el('qty-pad').onclick=e=>{const b=e.target.closest('button');if(!b)return;const i=el('qty-input'),k=b.dataset.k,c=i.value;
+  if(k==='CLR'){i.value='1';qtyFresh=true}
+  else if(k==='DEL'){i.value=c.length>1?c.slice(0,-1):'1';qtyFresh=i.value==='1'}
+  else if(qtyFresh){i.value=k==='0'?'1':k;qtyFresh=k==='0'}
+  else if(c.length<4)i.value=c+k};
+el('cl-body').onclick=e=>{const tr=e.target.closest('tr[data-id]');if(tr)openSale(tr.dataset.id)};
+
+/* ---------- products grid + search ---------- */
+function renderGrid(){
+  const q=searchQ.trim().toLowerCase(),all=live();
+  const list=q?all.filter(p=>p.name.toLowerCase().includes(q)):all;
+  el('prod-badge').textContent=q?`${list.length} of ${all.length}`:`${all.length} items`;
+  const g=el('grid');g.innerHTML='';
+  if(!list.length){g.innerHTML=`<div class="col-span-2 text-center text-xs text-slate-400 py-6">${q?'No products match your search.':'No products yet. Tap Edit catalog to add one.'}</div>`;return}
+  list.forEach(p=>{
+    const b=document.createElement('button');
+    b.className='pbtn glass-panel border border-slate-200 rounded-2xl p-3 flex flex-col justify-between items-center text-center shadow-sm h-24 active:scale-95 transition';
+    b.innerHTML=`<span class="font-bold text-xs line-clamp-2">${esc(p.name)}</span><span class="text-xs font-heading font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">${money(p.price)}</span>`;
+    let timer,long=false,cancelled=false,sx=0,sy=0;
+    b.addEventListener('pointerdown',e=>{long=false;cancelled=false;sx=e.clientX;sy=e.clientY;timer=setTimeout(()=>{long=true;openQty(p)},500)});
+    b.addEventListener('pointermove',e=>{if(Math.hypot(e.clientX-sx,e.clientY-sy)>10){cancelled=true;clearTimeout(timer)}});
+    ['pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>{cancelled=true;clearTimeout(timer)}));
+    b.addEventListener('pointerup',()=>{clearTimeout(timer);if(!long&&!cancelled)addToCart(p.id,1)});
+    b.addEventListener('contextmenu',e=>e.preventDefault());
+    g.appendChild(b);
+  });
+}
+
+/* ---------- cart ---------- */
+const total=()=>cart.reduce((s,i)=>s+i.product.price*i.qty,0);
+const count=()=>cart.reduce((s,i)=>s+i.qty,0);
+function addToCart(id,q){const p=live().find(x=>x.id===id);if(!p)return;const c=cart.find(i=>i.product.id===id);c?c.qty+=q:cart.push({product:p,qty:q});renderCart()}
+function updQty(id,d){const i=cart.findIndex(x=>x.product.id===id);if(i<0)return;cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);renderCart()}
+function clearCart(){cart=[];renderCart()}
+function renderCart(){
+  el('cart-count').textContent=count();
+  el('cart-total').textContent=money(total());
+  el('btn-checkout').disabled=!cart.length;
+  const box=el('cart-items');
+  if(!cart.length){box.innerHTML=`<div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs"><i class="fa-solid fa-basket-shopping text-2xl text-slate-300 mb-2"></i><span class="font-medium">Your basket is empty</span><span class="text-[10px]">Tap an item below to add it</span></div>`;return}
+  box.innerHTML=cart.map(i=>`<div class="flex justify-between items-center py-1.5 text-xs">
+    <div class="flex-1 min-w-0 pr-2"><div class="font-bold truncate">${esc(i.product.name)}</div><div class="text-[10px] text-slate-400">${money(i.product.price)} × ${i.qty}</div></div>
+    <div class="flex items-center gap-2"><div class="flex items-center border border-slate-200 rounded-lg bg-slate-50 overflow-hidden">
+      <button onclick="updQty(${i.product.id},-1)" class="px-2.5 py-1 font-bold active:bg-slate-300">−</button><span class="px-1.5 font-bold">${i.qty}</span>
+      <button onclick="updQty(${i.product.id},1)" class="px-2.5 py-1 font-bold active:bg-slate-300">+</button></div>
+      <span class="font-heading font-extrabold text-right w-16">${money(i.product.price*i.qty)}</span></div></div>`).join('');
+}
+
+/* ---------- custom qty ---------- */
+function openQty(p){qtyProduct=p;el('qty-name').textContent=p.name;el('qty-price').textContent='Unit price: '+money(p.price);el('qty-input').value='1';qtyFresh=true;el('m-qty').classList.remove('hidden')}
+function closeQty(){el('m-qty').classList.add('hidden');qtyProduct=null}
+function confirmQty(){const q=parseInt(el('qty-input').value,10);if(q>0&&qtyProduct){addToCart(qtyProduct.id,q);toast(`Added ${q}× ${qtyProduct.name}`)}closeQty()}
+
+/* ---------- checkout ---------- */
+function drawMethods(){
+  el('methods').innerHTML=METHODS.map(([m,ic])=>`<button onclick="setMethod('${m}')" class="t py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 ${m===method?'bg-slate-900 text-white border-slate-900':'bg-slate-100 text-slate-600 border-slate-200'}"><i class="fa-solid ${ic}"></i>${m}</button>`).join('');
+}
+function setMethod(m){
+  method=m;paidStr=m==='Cash'?'0':String(total());
+  el('pad-wrap').classList.toggle('opacity-30',m!=='Cash');
+  el('pad-wrap').classList.toggle('pointer-events-none',m!=='Cash');
+  drawMethods();drawPay();
+}
+function openCheckout(){
+  if(!cart.length)return;
+  el('co-list').innerHTML=cart.map(i=>`<div class="flex justify-between py-0.5"><span>${i.qty}× ${esc(i.product.name)}</span><b>${money(i.product.price*i.qty)}</b></div>`).join('');
+  el('co-count').textContent=count()+' items';
+  el('co-total').textContent=money(total());
+  setMethod('Cash');
+  el('view-checkout').classList.remove('hidden');
+}
+function closeCheckout(){el('view-checkout').classList.add('hidden')}
+function keypad(k){
+  if(k==='DEL')paidStr=paidStr.length>1?paidStr.slice(0,-1):'0';
+  else if(paidStr.length<9)paidStr=paidStr==='0'?(k==='00'?'0':k):paidStr+k;
+  drawPay();
+}
+function drawPay(){
+  el('paid').value=paidStr;
+  const ch=parseFloat(paidStr||0)-total(),c=el('co-change');
+  if(ch>=-0.001){c.textContent=money(Math.max(ch,0));c.className='font-heading font-extrabold text-lg text-emerald-600'}
+  else{c.textContent='Short by '+money(-ch);c.className='font-bold text-xs text-rose-500'}
+}
+function completeSale(){
+  if(completing||!cart.length)return;
+  const due=round2(total());
+  const paid=method==='Cash'?parseFloat(paidStr||0):due;
+  if(paid+0.001<due){toast('Payment is less than the total due');return}
+  completing=true;
+  const now=nowC();
+  const lines=cart.map(i=>({id:i.product.id,name:i.product.name,price:i.product.price,qty:i.qty}));
+  const sale={transactionId:'TXN-'+now,timestamp:new Date(now).toLocaleString(),
+    items:lines.map(l=>`${l.qty}x ${l.name}`).join(', '),itemsCount:count(),lines,
+    totalAmount:due,amountPaid:paid,change:round2(paid-due),method:method,paymentMethod:method,status:'Completed',updatedAt:now};
+  salesHistory.unshift(sale);ls.set('pos_sales_history',salesHistory);
+  queue.push(sale);ls.set('pos_pending_sync',queue);
+  el('ty-time').textContent=sale.timestamp;el('ty-items').textContent=sale.itemsCount;el('ty-method').textContent=method;
+  el('ty-total').textContent=money(due);el('ty-paid').textContent=money(paid);el('ty-change').textContent=money(sale.change);
+  const s=el('ty-sync');s.textContent='Saving…';s.className='text-[11px] font-semibold mt-1 text-amber-600';
+  el('m-ty').classList.remove('hidden');
+  syncAll().then(()=>{
+    const left=queue.some(q=>q.transactionId===sale.transactionId);
+    s.innerHTML=left?'<i class="fa-solid fa-triangle-exclamation"></i> Saved on this device · will sync when online':'<i class="fa-solid fa-circle-check"></i> Synced to Google Sheet';
+    s.className='text-[11px] font-semibold mt-1 '+(left?'text-rose-500':'text-emerald-600');
+  });
+}
+function finishSale(){el('m-ty').classList.add('hidden');closeCheckout();clearCart();completing=false;if(updateReady)location.reload()}
+
+/* ---------- catalog editor ---------- */
+function openEdit(){resetForm();renderEditList();el('m-edit').classList.remove('hidden')}
+function renderEditList(){
+  el('edit-list').innerHTML=live().map(p=>`<div class="flex justify-between items-center p-2.5 bg-white border border-slate-200 rounded-xl text-xs shadow-sm">
+    <div class="min-w-0 pr-2"><div class="font-bold truncate">${esc(p.name)}</div><div class="text-[10px] text-emerald-600 font-bold">${money(p.price)}</div></div>
+    <div class="flex gap-1.5 shrink-0"><button onclick="editProduct(${p.id})" class="px-2.5 py-1 bg-slate-100 rounded-lg font-bold">Edit</button>
+    <button onclick="deleteProduct(${p.id})" class="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-lg font-bold">Delete</button></div></div>`).join('')
+    ||'<div class="text-center text-xs text-slate-400 py-6">No products yet.</div>';
+}
+function productsChanged(){
+  seed=false;ls.set('pos_seed',false);prodVer++;
+  ls.set('pos_products',products);prodDirty=true;ls.set('pos_products_dirty',true);
+  renderGrid();renderCart();renderEditList();syncAll();
+}
+function saveProduct(){
+  const id=el('e-id').value,name=el('e-name').value.trim(),price=parseFloat(el('e-price').value);
+  if(!name||isNaN(price)||price<0){toast('Enter a name and a valid price');return}
+  if(id){const p=products.find(x=>x.id===+id);if(p){p.name=name;p.price=price;p.updatedAt=nowC()}
+    cart.forEach(c=>{if(c.product.id===+id)c.product=products.find(x=>x.id===+id)})}
+  else products.push({id:Date.now(),name,price,updatedAt:nowC()});
+  resetForm();productsChanged();toast('Catalog updated');
+}
+function editProduct(id){const p=live().find(x=>x.id===id);if(!p)return;
+  el('e-id').value=p.id;el('e-name').value=p.name;el('e-price').value=p.price;
+  el('edit-title').textContent='Edit item';el('e-cancel').classList.remove('hidden')}
+function resetForm(){el('e-id').value='';el('e-name').value='';el('e-price').value='';el('edit-title').textContent='Add product';el('e-cancel').classList.add('hidden')}
+function deleteProduct(id){
+  const p=live().find(x=>x.id===id);if(!p||!confirm(`Delete "${p.name}"?`))return;
+  p.deleted=true;p.updatedAt=nowC();            // kept as a delete marker so other devices delete it too
+  cart=cart.filter(c=>c.product.id!==id);productsChanged();toast('Item deleted');
+}
+// Per-item merge: for each product the newest change wins; deletes are markers, so they spread instead of being undone.
+function mergeProducts(base,inc){
+  const m=new Map(base.map(p=>[String(p.id),p]));
+  inc.forEach(p=>{const k=String(p.id),b=m.get(k);if(!b||(+p.updatedAt||0)>(+b.updatedAt||0))m.set(k,p)});
+  return [...m.values()];
+}
+function setProducts(list){
+  products=list;ls.set('pos_products',products);
+  cart=cart.map(c=>({...c,product:live().find(p=>p.id===c.product.id)})).filter(c=>c.product);
+  renderGrid();renderEditList();renderCart();
+}
+
+/* ---------- sale records: wire format, void, edit ---------- */
+const parseCount=s=>(String(s).match(/(\d+)x /g)||[]).reduce((a,m)=>a+parseInt(m),0)||1;
+const toWire=s=>{const {lines,...r}=s;if(lines)r.itemsJson=JSON.stringify(lines);return r};
+function fromWire(r){
+  const s={...r,method:r.paymentMethod||r.method||'Cash'};
+  let L=null;try{L=typeof r.itemsJson==='string'&&r.itemsJson?JSON.parse(r.itemsJson):null}catch(e){}
+  delete s.itemsJson;if(Array.isArray(L))s.lines=L;
+  s.itemsCount=Number(r.itemsCount)||parseCount(r.items);s.status=r.status||'Completed';s.updatedAt=+r.updatedAt||0;
+  return s;
+}
+// Older sales only have the text "2x Name, 1x Name". Rebuild lines from it (prices are estimated).
+function parseItemsText(txt,totalAmt){
+  const cat=live();
+  const L=String(txt||'').split(/, (?=\d+x )/).map(p=>{const m=p.match(/^(\d+)x (.+)$/);return m?{id:null,name:m[2],qty:+m[1],price:null}:null}).filter(Boolean);
+  L.forEach(l=>{const c=cat.find(p=>p.name.toLowerCase()===l.name.toLowerCase());if(c){l.price=c.price;l.id=c.id}});
+  const un=L.filter(l=>l.price===null);
+  if(un.length===1&&totalAmt){const rest=totalAmt-L.reduce((a,l)=>a+(l.price===null?0:l.price*l.qty),0);un[0].price=Math.max(round2(rest/un[0].qty),0)}
+  L.forEach(l=>{if(l.price===null)l.price=0});
+  return L;
+}
+const findSale=id=>salesHistory.find(s=>s.transactionId===id);
+const getLines=s=>Array.isArray(s.lines)&&s.lines.length?s.lines:parseItemsText(s.items,s.totalAmount);
+const isVoid=s=>s.status==='VOID';
+let sd=null;
+function openSale(id){
+  const s=findSale(id);if(!s)return;
+  sd={id,lines:getLines(s).map(l=>({...l})),method:s.method||s.paymentMethod||'Cash',est:!(Array.isArray(s.lines)&&s.lines.length)};
+  renderSale();el('m-sale').classList.remove('hidden');
+}
+function closeSale(){el('m-sale').classList.add('hidden');sd=null}
+const sdTotal=()=>round2(sd.lines.reduce((a,l)=>a+l.price*l.qty,0));
+function drawSdTotal(){el('sd-total').textContent=money(sdTotal())}
+function renderSale(){
+  const s=sd&&findSale(sd.id);if(!s){closeSale();return}
+  const v=isVoid(s);
+  el('sd-id').textContent=s.transactionId;
+  el('sd-time').textContent=s.timestamp+(sd.est&&!v?' · Prices on older sales are estimated, please check them.':'');
+  el('sd-void').classList.toggle('hidden',!v);
+  el('sd-edit').classList.toggle('hidden',v);
+  el('sd-save').classList.toggle('hidden',v);
+  el('sd-voidbtn').innerHTML=v?'<i class="fa-solid fa-rotate-left"></i> Restore sale':'<i class="fa-solid fa-ban"></i> Void sale';
+  el('sd-lines').innerHTML=sd.lines.map((l,i)=>v
+    ?`<div class="flex justify-between text-xs bg-white border border-slate-200 rounded-xl p-2.5"><span>${l.qty}× ${esc(l.name)}</span><b>${money(l.price*l.qty)}</b></div>`
+    :`<div class="bg-white border border-slate-200 rounded-xl p-2 text-xs shadow-sm">
+        <div class="flex justify-between items-center gap-2"><span class="font-bold truncate">${esc(l.name)}</span>
+          <button onclick="sdRemove(${i})" class="text-rose-500 px-1.5"><i class="fa-solid fa-trash-can"></i></button></div>
+        <div class="flex items-center justify-between mt-1.5 gap-2">
+          <div class="flex items-center border border-slate-200 rounded-lg bg-slate-50 overflow-hidden"><button onclick="sdQty(${i},-1)" class="px-2.5 py-1 font-bold active:bg-slate-300">−</button><span class="px-1.5 font-bold">${l.qty}</span><button onclick="sdQty(${i},1)" class="px-2.5 py-1 font-bold active:bg-slate-300">+</button></div>
+          <div class="flex items-center gap-1"><span class="text-slate-400">₱</span><input type="number" step="0.01" inputmode="decimal" value="${l.price}" onchange="sdPrice(${i},this.value)" class="w-20 text-right border border-slate-300 rounded-lg p-1 font-bold"></div>
+        </div></div>`).join('')||'<div class="text-center text-xs text-slate-400 py-4">No items. Add one below, or void the sale.</div>';
+  el('sd-add').innerHTML=live().map(p=>`<option value="${p.id}">${esc(p.name)} · ${money(p.price)}</option>`).join('');
+  el('sd-methods').innerHTML=METHODS.map(([m,ic])=>`<button onclick="sdMethod('${m}')" class="t py-1.5 rounded-xl text-[11px] font-bold border flex items-center justify-center gap-1 ${m===sd.method?'bg-slate-900 text-white border-slate-900':'bg-slate-100 text-slate-600 border-slate-200'}"><i class="fa-solid ${ic}"></i>${m}</button>`).join('');
+  drawSdTotal();
+}
+function sdQty(i,d){const l=sd.lines[i];if(!l)return;l.qty=Math.max(1,l.qty+d);renderSale()}
+function sdRemove(i){sd.lines.splice(i,1);renderSale()}
+function sdPrice(i,v){const p=parseFloat(v);if(isNaN(p)||p<0){toast('Enter a valid price');renderSale();return}sd.lines[i].price=p;drawSdTotal()}
+function sdMethod(m){sd.method=m;renderSale()}
+function sdAdd(){
+  const p=live().find(x=>String(x.id)===el('sd-add').value);if(!p){toast('Pick a product first');return}
+  const l=sd.lines.find(x=>x.id===p.id&&x.price===p.price);l?l.qty++:sd.lines.push({id:p.id,name:p.name,price:p.price,qty:1});renderSale();
+}
+function needV2(){if(srvV>=2)return true;toast('Update the Apps Script (Code.gs) first, then sync once');return false}
+function saleChanged(s,msg){
+  ls.set('pos_sales_history',salesHistory);
+  queue.push({_op:'update',transactionId:s.transactionId,sale:JSON.parse(JSON.stringify(s))});ls.set('pos_pending_sync',queue);
+  drawBadge();drawCloud();toast(msg);syncAll();
+}
+function saveSale(){
+  const s=sd&&findSale(sd.id);if(!s||!needV2())return;
+  if(!sd.lines.length){toast('Add an item, or void the sale');return}
+  const tot=sdTotal(),m=sd.method;
+  const paid=m==='Cash'?Math.max(+s.amountPaid||0,tot):tot;
+  Object.assign(s,{lines:sd.lines.map(l=>({...l})),items:sd.lines.map(l=>`${l.qty}x ${l.name}`).join(', '),
+    itemsCount:sd.lines.reduce((a,l)=>a+l.qty,0),totalAmount:tot,amountPaid:paid,change:round2(paid-tot),method:m,paymentMethod:m,updatedAt:nowC()});
+  closeSale();saleChanged(s,'Sale updated');
+}
+function toggleVoid(){
+  const s=sd&&findSale(sd.id);if(!s||!needV2())return;
+  const v=isVoid(s);
+  if(!confirm(v?'Restore this sale and count it in the totals again?':'Void this sale? It stays in the log but is not counted in the totals.'))return;
+  s.status=v?'Completed':'VOID';s.updatedAt=nowC();
+  closeSale();saleChanged(s,v?'Sale restored':'Sale voided');
+}
+
+/* ---------- cloud sync ---------- */
+async function api(opts,body){
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),20000),t0=Date.now();
+  try{
+    const r=body===undefined
+      ?await fetch(sheetUrl+(sheetUrl.includes('?')?'&':'?')+'action=getAll&v=2&t='+Date.now(),{signal:ctl.signal})
+      :await fetch(sheetUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:ctl.signal});
+    const j=await r.json();
+    if(!j.ok)throw new Error(j.error||'Server error');
+    j._mid=(t0+Date.now())/2;
+    return j;
+  }finally{clearTimeout(t)}
+}
+const sortKey=x=>Number(String((x&&x.transactionId)||'').replace(/\D/g,''))||0;
+salesHistory=salesHistory.filter(Boolean).map((x,i)=>x.transactionId?x:{...x,transactionId:'LOCAL-'+(Date.now()-i)});
+
+async function syncAll(manual){
+  if(syncing)return;
+  if(!navigator.onLine){syncState='offline';drawBadge();if(manual)toast('You are offline. Sales are saved on this device.');return}
+  syncing=true;syncState='syncing';drawBadge();
+  let err=null;
+  try{
+    // 1. offline queue: new sales and sale edits/voids, in order (the server ignores duplicates, so retries are safe)
+    for(const s of [...queue]){
+      try{
+        if(s._op==='update'){if(srvV<2)throw new Error('Update the Apps Script (Code.gs) to sync edits');await api(0,{action:'updateSale',sale:toWire(s.sale)})}
+        else{await api(0,toWire(s));if(serverIds)serverIds.add(s.transactionId)}
+        queue=queue.filter(q=>q!==s);ls.set('pos_pending_sync',queue);
+      }catch(e){err=e;break}
+    }
+    // 2. pull, then merge catalog
+    if(!err){
+      const d=await api();
+      srvV=d.v||1;ls.set('pos_srv_v',srvV);
+      if(d.serverTime){clockOff=Math.round(d.serverTime-d._mid);ls.set('pos_clock_off',clockOff)}
+      const srv=d.products||[];
+      if(srvV>=2){
+        const ver=prodVer;
+        let merged=seed?(srv.length?srv:products):mergeProducts(srv,products);
+        const sm=new Map(srv.map(p=>[String(p.id),p]));
+        if(merged.some(p=>{const s=sm.get(String(p.id));return !s||(+p.updatedAt||0)>(+s.updatedAt||0)})){
+          const r=await api(0,{action:'mergeProducts',products:merged});if(r.products)merged=r.products;
+        }
+        if(prodVer!==ver){merged=mergeProducts(merged,products);prodDirty=true}else prodDirty=false;   // edits made while syncing are kept
+        seed=false;ls.set('pos_seed',false);ls.set('pos_products_dirty',prodDirty);
+        setProducts(merged);
+      }else{
+        // old Apps Script: whole-list sync as before
+        const key=a=>JSON.stringify(a.map(p=>[p.id,p.name,p.price]));
+        if(prodDirty){await api(0,{action:'saveProducts',products:live()});prodDirty=false;ls.set('pos_products_dirty',false)}
+        else if(srv.length){if(key(srv)!==key(live()))setProducts(srv)}
+        else if(live().length){await api(0,{action:'saveProducts',products:live()})}
+        seed=false;ls.set('pos_seed',false);
+      }
+      // 3. sales: add new ones, and take newer voids/edits from other devices
+      const byId=new Map(salesHistory.map(s=>[s.transactionId,s])),ids=new Set();
+      (d.sales||[]).forEach(r=>{
+        const s=fromWire(r);ids.add(s.transactionId);const l=byId.get(s.transactionId);
+        if(!l){salesHistory.push(s);byId.set(s.transactionId,s)}
+        else if((+s.updatedAt||0)>(+l.updatedAt||0))Object.assign(l,s);
+      });
+      // a sale that was in the sheet before but is gone now was deleted there: remove it here too (unsent sales are kept)
+      if(serverIds)salesHistory=salesHistory.filter(s=>!(serverIds.has(s.transactionId)&&!ids.has(s.transactionId)&&!queue.some(q=>!q._op&&q.transactionId===s.transactionId)));
+      cloudLight=(d.sales||[]).filter(r=>(r.status||'Completed')!=='VOID').map(r=>[String(r.transactionId),+r.totalAmount||0]);ls.set('pos_cloud_light',cloudLight);
+      serverIds=ids;ls.set('pos_server_ids',[...ids]);
+      salesHistory.sort((a,b)=>sortKey(b)-sortKey(a));
+      salesHistory=salesHistory.slice(0,300);ls.set('pos_sales_history',salesHistory);
+    }
+  }catch(e){err=e}
+  lastErr=err?(err.message||String(err)):'';
+  syncing=false;
+  syncState=err?(navigator.onLine?'error':'offline'):'ok';
+  drawBadge();
+  if(!el('m-cloud').classList.contains('hidden'))drawCloud();
+  if(manual)toast(err?'Sync failed: '+(err.message||'check the URL'):'Synced with Google Sheets');
+}
+// One-time catch-up: send every sale on this device that the sheet does not have yet.
+const localOnly=()=>serverIds?salesHistory.filter(s=>!serverIds.has(s.transactionId)&&!queue.some(q=>!q._op&&q.transactionId===s.transactionId)):[];
+async function uploadAllLocal(){
+  if(!navigator.onLine){toast('You are offline');return}
+  if(!serverIds){toast('Checking the sheet first…');await syncAll();if(!serverIds){toast('Could not reach the sheet');return}}
+  const L=localOnly();
+  if(!L.length){toast('Nothing to upload: the sheet already has every sale');return}
+  if(!confirm(`Upload ${L.length} sale(s) from this device to the Google Sheet?`))return;
+  if(srvV<2){L.forEach(s=>queue.push(s));ls.set('pos_pending_sync',queue);toast('Uploading…');return syncAll(true)}
+  toast('Uploading…');
+  try{
+    for(let i=0;i<L.length;i+=50){const b=L.slice(i,i+50);await api(0,{action:'addSales',sales:b.map(toWire)});b.forEach(s=>serverIds.add(s.transactionId))}
+    ls.set('pos_server_ids',[...serverIds]);toast(`Uploaded ${L.length} sale(s)`);
+  }catch(e){toast('Upload failed: '+(e.message||'try again'))}
+  drawCloud();
+}
+function drawBadge(){
+  const n=queue.length+(prodDirty?1:0);
+  const m={ok:['fa-cloud-check','text-emerald-400','Synced'],syncing:['fa-rotate fa-spin','text-amber-400','Syncing'],offline:['fa-cloud-slash','text-slate-400','Offline'],error:['fa-triangle-exclamation','text-rose-400','Sync error'],idle:['fa-cloud','text-slate-400','Not synced']}[syncState];
+  const b=el('sync-badge');
+  b.className='flex items-center gap-1 text-[11px] bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700 '+m[1];
+  b.innerHTML=`<i class="fa-solid ${m[0]} text-[10px]"></i> ${m[2]}${n?` · ${n} pending`:''}`;
+}
+function openCloud(){el('url-input').value=sheetUrl;drawCloud();el('m-cloud').classList.remove('hidden');syncAll()}
+function revenue(){
+  const pend=salesHistory.filter(s=>!isVoid(s)&&!(serverIds&&cloudLight&&serverIds.has(s.transactionId))).map(s=>[s.transactionId,+s.totalAmount||0]);
+  const all=(serverIds&&cloudLight?cloudLight:[]).concat(pend),day=new Date().toDateString();
+  let tot=0,today=0;
+  all.forEach(([id,a])=>{tot+=a;const ms=Number(String(id).replace(/\D/g,''));if(ms&&new Date(ms).toDateString()===day)today+=a});
+  return {tot:round2(tot),today:round2(today),n:all.length};
+}
+function drawCloud(){
+  const n=queue.length+(prodDirty?1:0);
+  const t={ok:['Connected','text-emerald-600'],syncing:['Syncing…','text-amber-600'],offline:['Offline','text-slate-500'],error:['Sync error','text-rose-500'],idle:['Not synced yet','text-slate-500']}[syncState];
+  const s=el('cl-status');s.textContent=(syncState==='error'&&lastErr?'Sync error: '+lastErr:t[0])+(n?` · ${n} waiting to upload`:'');s.className='font-bold '+t[1];
+  const rv=revenue();el('cl-total').textContent=money(rv.tot);el('cl-today').textContent=`Today ${money(rv.today)} · ${rv.n} sales`;
+  el('cl-head').textContent=`Transaction log (latest ${Math.min(salesHistory.length,100)}) · tap a sale to edit or void`;
+  const lo=localOnly().length;
+  el('btn-upload-all').innerHTML=`<i class="fa-solid fa-cloud-arrow-up text-brand-600"></i> Upload local sales${lo?` (${lo})`:''}`;
+  const sw=navigator.serviceWorker&&navigator.serviceWorker.controller;
+  el('cl-ver').textContent=`Version ${APP_VERSION} · ${sw?'Works offline':'Offline mode not active yet (open once online)'} · ${srvV>=2?'Script v2':srvV?'Old Apps Script':'Script not checked'}`;
+  el('cl-body').innerHTML=salesHistory.length?salesHistory.slice(0,100).map(s=>{const v=isVoid(s);
+    return `<tr data-id="${esc(s.transactionId)}" class="active:bg-slate-100 ${v?'opacity-60':''}"><td class="p-2 text-slate-500 font-mono text-[10px]">${esc((s.timestamp||'').split(',').pop().trim())}</td><td class="p-2 font-medium">${s.itemsCount||'–'}</td><td class="p-2 text-slate-500">${esc(s.method||s.paymentMethod||'Cash')}${v?' <b class="text-rose-500">VOID</b>':''}</td><td class="p-2 text-right font-bold ${v?'text-slate-400 line-through':'text-emerald-600'}">${money(s.totalAmount)}</td></tr>`}).join('')
+    :'<tr><td colspan="4" class="text-center py-6 text-slate-400">No sales logged yet.</td></tr>';
+}
+function saveUrl(){const u=el('url-input').value.trim();if(!u)return;sheetUrl=u;ls.set('pos_sheet_url',u);toast('URL saved');syncAll(true)}
+async function testConn(){
+  toast('Testing…');
+  try{await api(0,{action:'ping'});toast('Connected to your Apps Script')}
+  catch(e){toast('Failed: '+(e.message||'check URL and deployment access'))}
+}
+function exportCSV(){
+  if(!salesHistory.length){toast('No sales to export');return}
+  const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const rows=[['Transaction ID','Date','Items','Total','Payment Method','Amount Paid','Change','Status'].join(',')]
+    .concat(salesHistory.map(s=>[s.transactionId,s.timestamp,s.items,s.totalAmount,s.method||s.paymentMethod,s.amountPaid,s.change,s.status||'Completed'].map(q).join(',')));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));
+  a.download=`POS_Sales_${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();a.remove();
+}
+
+/* ---------- app updates: no manual double reload ---------- */
+const idle=()=>!cart.length&&['view-checkout','m-edit','m-cloud','m-sale','m-qty','m-ty'].every(i=>el(i).classList.contains('hidden'));
+async function checkUpdate(manual){
+  if(!navigator.onLine){if(manual)toast('You are offline');return}
+  try{
+    const r=await fetch(location.pathname,{cache:'no-store'});
+    const m=(await r.text()).match(/APP_VERSION\s*=\s*'([^']+)'/);
+    if(m&&m[1]!==APP_VERSION){
+      updateReady=true;
+      if(idle()){toast('Updating to the new version…');setTimeout(()=>location.reload(),600)}
+      else toast('New version ready. It will load after this sale.');
+    }else if(manual)toast('You have the latest version');
+  }catch(e){if(manual)toast('Could not check for updates')}
+}
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+
+/* ---------- start: render from local cache instantly, sync in background ---------- */
+renderGrid();renderCart();drawBadge();
+window.addEventListener('online',()=>{syncAll();checkUpdate()});
+window.addEventListener('offline',()=>{syncState='offline';drawBadge()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncAll();checkUpdate()}});
+setInterval(()=>{if(!document.hidden&&!completing){syncAll();checkUpdate()}},60000);
+syncAll();setTimeout(checkUpdate,3000);
+</script>
+</body>
+</html>
