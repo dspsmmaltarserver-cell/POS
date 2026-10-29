@@ -11,7 +11,9 @@
 tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],heading:['Plus Jakarta Sans','sans-serif']},colors:{brand:{50:'#f0f3ff',100:'#e0e7ff',200:'#c7d2fe',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca'}}}}}
 </script>
 <style>
-body{font-family:'Inter',sans-serif;touch-action:manipulation;user-select:none;-webkit-user-select:none;background:linear-gradient(135deg,#0f172a,#1e1b4b 50%,#0f172a)}
+body{font-family:'Inter',sans-serif;touch-action:manipulation;user-select:none;-webkit-user-select:none;background:#e9ecf3}
+button{cursor:pointer}button:disabled{cursor:not-allowed}
+.pcard{transition:transform .12s,box-shadow .15s,border-color .15s}.pcard:hover{box-shadow:0 8px 22px -10px rgba(79,70,229,.45);border-color:#818cf8}.pcard:active{transform:scale(.97)}
 .glass-panel{background:rgba(255,255,255,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.4)}
 .pbtn{-webkit-touch-callout:none;touch-action:pan-y}
 .t:active{transform:scale(.96)}.t{transition:transform .1s}
@@ -19,68 +21,74 @@ input{user-select:text;-webkit-user-select:text}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
 </style>
 </head>
-<body class="flex justify-center items-center min-h-screen p-0 sm:p-4 text-slate-800">
-<div id="app" class="w-full max-w-md h-screen sm:h-[844px] bg-slate-900 flex flex-col shadow-2xl relative overflow-hidden sm:rounded-[40px] border-0 sm:border-[8px] border-slate-800">
+<body class="text-slate-800">
+<div id="app" class="w-full h-[100dvh] max-w-xl lg:max-w-none mx-auto bg-slate-100 flex flex-col relative overflow-hidden shadow-2xl lg:shadow-none">
 
-  <div class="bg-slate-900 px-4 py-2.5 text-white flex justify-between items-center border-b border-slate-800 shrink-0">
-    <div class="flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-      <span class="font-bold tracking-wide text-slate-200 text-[11px]">Mobile POS Express</span>
+  <header class="bg-slate-900 px-4 lg:px-6 py-2.5 lg:py-3 text-white flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-900/40"><i class="fa-solid fa-cash-register text-white text-xs"></i></div>
+      <div class="leading-tight"><div class="font-heading font-extrabold text-sm tracking-tight">Mobile POS Express</div><div class="text-[10px] text-slate-400 hidden sm:block">Point of sale</div></div>
     </div>
-    <button id="sync-badge" onclick="openCloud()" class="flex items-center gap-1 text-[11px] bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700"></button>
-  </div>
+    <div class="flex items-center gap-2">
+      <button onclick="openEdit()" class="hidden lg:flex items-center gap-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 px-3.5 py-2 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-sliders text-brand-400"></i> Catalog &amp; stock</button>
+      <button onclick="openCloud()" class="hidden lg:flex items-center gap-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 px-3.5 py-2 rounded-xl border border-slate-700 transition"><i class="fa-solid fa-table-cells text-emerald-400"></i> Sales &amp; sync</button>
+      <button id="sync-badge" onclick="openCloud()" class="flex items-center gap-1 text-[11px] bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700"></button>
+    </div>
+  </header>
 
   <!-- MAIN -->
-  <div class="flex flex-col flex-1 min-h-0 bg-slate-100 p-3 gap-3">
-    <div class="glass-panel rounded-2xl flex flex-col h-[38%] shadow-lg overflow-hidden shrink-0">
-      <div class="bg-slate-900/90 px-3 py-2 text-white font-bold text-xs flex justify-between items-center">
-        <div class="flex items-center gap-2"><i class="fa-solid fa-cart-shopping text-brand-400"></i><span>Shopping List</span>
-          <span id="cart-count" class="bg-brand-500 text-[10px] font-extrabold px-2 py-0.5 rounded-full">0</span></div>
-        <button onclick="clearCart()" class="text-[11px] text-rose-300 flex items-center gap-1"><i class="fa-solid fa-trash-can"></i> Clear all</button>
+  <main class="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 lg:gap-4 p-3 lg:p-5">
+
+    <aside class="order-1 lg:order-2 h-[36%] lg:h-auto lg:w-[380px] xl:w-[420px] shrink-0 bg-white rounded-2xl lg:rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+      <div class="px-3.5 py-2.5 lg:py-3.5 flex justify-between items-center border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-2"><span class="font-heading font-extrabold text-sm">Current order</span>
+          <span id="cart-count" class="bg-brand-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">0</span></div>
+        <button onclick="clearCart()" class="text-[11px] font-semibold text-slate-400 hover:text-rose-500 flex items-center gap-1 transition"><i class="fa-solid fa-trash-can"></i> Clear</button>
       </div>
-      <div id="cart-items" class="flex-1 overflow-y-auto p-2 divide-y divide-slate-100"></div>
-      <div class="bg-white/90 border-t border-slate-200 p-2.5 flex flex-col gap-2">
-        <div class="flex justify-between items-center px-1">
-          <span class="text-xs text-slate-500 font-bold">Total</span>
-          <span id="cart-total" class="text-xl font-heading font-extrabold text-slate-900">₱0.00</span>
+      <div id="cart-items" class="flex-1 overflow-y-auto px-3.5 divide-y divide-slate-100"></div>
+      <div class="border-t border-slate-100 bg-slate-50/80 p-3 lg:p-4 flex flex-col gap-2.5 shrink-0">
+        <div class="flex justify-between items-end">
+          <span class="text-xs text-slate-500 font-semibold">Total</span>
+          <span id="cart-total" class="text-2xl lg:text-3xl font-heading font-extrabold tracking-tight">₱0.00</span>
         </div>
-        <button id="btn-checkout" onclick="openCheckout()" disabled class="w-full bg-gradient-to-r from-brand-600 to-indigo-700 disabled:from-slate-300 disabled:to-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-md text-sm flex items-center justify-center gap-2">
-          <i class="fa-solid fa-cash-register"></i> Proceed to checkout</button>
+        <button id="btn-checkout" onclick="openCheckout()" disabled class="t w-full bg-gradient-to-r from-brand-600 to-indigo-700 hover:from-brand-700 hover:to-indigo-800 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-bold py-3 lg:py-3.5 rounded-xl shadow-md shadow-indigo-500/20 text-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cash-register"></i> Checkout</button>
       </div>
-    </div>
+    </aside>
 
-    <div class="glass-panel rounded-2xl p-2.5 flex-1 min-h-0 flex flex-col shadow-lg">
-      <div class="relative mb-2">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-        <input id="search" type="search" placeholder="Search products" oninput="searchQ=this.value;renderGrid()" class="w-full text-xs border border-slate-300 rounded-xl py-2 pl-8 pr-3 bg-white focus:outline-none focus:border-brand-500">
+    <section class="order-2 lg:order-1 flex-1 min-h-0 min-w-0 bg-white rounded-2xl lg:rounded-3xl border border-slate-200 shadow-sm flex flex-col p-3 lg:p-5">
+      <div class="relative mb-2.5">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input id="search" type="search" placeholder="Search products" oninput="searchQ=this.value;renderGrid()" class="w-full text-xs lg:text-sm border border-slate-200 rounded-xl py-2.5 lg:py-3 pl-9 pr-3 bg-slate-50 focus:bg-white focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition">
       </div>
-      <div class="text-[10px] text-slate-500 mb-1.5 px-1 flex justify-between items-center font-medium">
-        <span><i class="fa-solid fa-circle-info text-brand-500"></i> Tap = add 1 · Hold = custom qty</span>
-        <span id="prod-badge" class="font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100"></span>
+      <div class="text-[10px] lg:text-[11px] text-slate-400 mb-2 px-0.5 flex justify-between items-center font-medium">
+        <span>Tap to add · Hold (or right-click) for quantity</span>
+        <span id="prod-badge" class="font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full"></span>
       </div>
-      <div id="grid" class="grid grid-cols-2 gap-2 overflow-y-auto flex-1 content-start pr-1"></div>
-    </div>
+      <div id="grid" class="grid grid-cols-3 gap-2 lg:gap-3.5 overflow-y-auto flex-1 content-start auto-rows-min pr-1"></div>
+    </section>
+  </main>
 
-    <div class="glass-panel rounded-2xl p-2 flex gap-2 shadow-lg text-xs font-bold shrink-0">
-      <button onclick="openEdit()" class="t flex-1 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-center gap-1.5"><i class="fa-solid fa-sliders text-brand-600"></i> Edit catalog</button>
-      <button onclick="openCloud()" class="t flex-1 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm flex items-center justify-center gap-1.5"><i class="fa-solid fa-table-cells text-emerald-600"></i> Cloud sync</button>
-    </div>
+  <div class="lg:hidden bg-white border-t border-slate-200 px-3 py-2 flex gap-2 text-xs font-bold shrink-0">
+    <button onclick="openEdit()" class="t flex-1 py-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-1.5"><i class="fa-solid fa-sliders text-brand-600"></i> Catalog &amp; stock</button>
+    <button onclick="openCloud()" class="t flex-1 py-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-1.5"><i class="fa-solid fa-table-cells text-emerald-600"></i> Sales &amp; sync</button>
   </div>
 
   <!-- CHECKOUT -->
-  <div id="view-checkout" class="hidden absolute inset-0 bg-slate-50 flex flex-col z-20">
-    <div class="bg-slate-900 p-3 text-white flex justify-between items-center shrink-0">
-      <button onclick="closeCheckout()" class="text-slate-300 text-xs flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700"><i class="fa-solid fa-chevron-left"></i> Back</button>
+  <div id="view-checkout" class="hidden absolute inset-0 bg-slate-950/60 z-20 flex items-stretch lg:items-center justify-center lg:p-6">
+   <div class="bg-slate-50 w-full lg:max-w-4xl flex flex-col lg:rounded-3xl overflow-hidden lg:max-h-[94%] shadow-2xl">
+    <div class="bg-slate-900 p-3 lg:px-5 lg:py-3.5 text-white flex justify-between items-center shrink-0">
+      <button onclick="closeCheckout()" class="text-slate-300 hover:text-white text-xs flex items-center gap-1.5 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700"><i class="fa-solid fa-chevron-left"></i> Back</button>
       <h2 class="font-heading font-bold text-base">Payment</h2><div class="w-14"></div>
     </div>
-    <div class="flex-1 overflow-y-auto p-3 flex flex-col gap-2.5">
-      <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm">
-        <div class="flex justify-between mb-1.5 pb-1 border-b border-slate-100 text-xs font-semibold text-slate-500"><span>Order summary</span><span id="co-count"></span></div>
-        <div id="co-list" class="space-y-1 max-h-24 overflow-y-auto text-xs divide-y divide-slate-100 pr-1"></div>
-        <div class="border-t border-slate-200 pt-2 mt-2 flex justify-between items-center font-heading">
-          <span class="text-xs font-bold text-slate-600">Total due</span><span id="co-total" class="text-2xl font-extrabold text-slate-900"></span></div>
+    <div class="flex-1 overflow-y-auto p-3 lg:p-5 flex flex-col lg:grid lg:grid-cols-2 gap-3 lg:gap-5">
+      <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex flex-col">
+        <div class="flex justify-between mb-1.5 pb-1.5 border-b border-slate-100 text-xs font-semibold text-slate-500"><span>Order summary</span><span id="co-count"></span></div>
+        <div id="co-list" class="space-y-1 max-h-24 lg:max-h-none lg:flex-1 overflow-y-auto text-xs lg:text-sm divide-y divide-slate-100 pr-1"></div>
+        <div class="border-t border-slate-200 pt-2.5 mt-2 flex justify-between items-center font-heading">
+          <span class="text-xs font-bold text-slate-600">Total due</span><span id="co-total" class="text-2xl lg:text-4xl font-extrabold text-slate-900"></span></div>
       </div>
-      <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm flex-1 flex flex-col">
+      <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex-1 flex flex-col">
         <div id="methods" class="grid grid-cols-3 gap-1.5 mb-2"></div>
         <div class="relative mb-2">
           <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xl">₱</span>
@@ -95,9 +103,10 @@ input{user-select:text;-webkit-user-select:text}
         </div>
       </div>
     </div>
-    <div class="p-3 bg-white border-t border-slate-200 shrink-0">
-      <button id="btn-done" onclick="completeSale()" class="t w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-3 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-circle-check text-lg"></i> Complete &amp; log sale</button>
+    <div class="p-3 lg:px-5 bg-white border-t border-slate-200 shrink-0">
+      <button id="btn-done" onclick="completeSale()" class="t w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 lg:py-3.5 rounded-xl shadow-lg text-sm flex items-center justify-center gap-2"><i class="fa-solid fa-circle-check text-lg"></i> Complete &amp; log sale <span class="hidden lg:inline text-white/60 text-xs font-medium">(Enter)</span></button>
     </div>
+   </div>
   </div>
 
   <!-- QTY -->
@@ -118,17 +127,19 @@ input{user-select:text;-webkit-user-select:text}
 
   <!-- CATALOG -->
   <div id="m-edit" class="hidden absolute inset-0 bg-slate-950/70 z-40 flex items-center justify-center p-3">
-    <div class="bg-white rounded-3xl w-full max-w-sm h-[90%] flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-white rounded-3xl w-full max-w-sm lg:max-w-lg h-[90%] flex flex-col shadow-2xl overflow-hidden">
       <div class="bg-slate-900 p-3.5 text-white flex justify-between items-center">
         <div class="flex items-center gap-2"><i class="fa-solid fa-boxes-stacked text-brand-400"></i><h3 class="font-heading font-bold text-sm">Product catalog</h3></div>
         <button onclick="el('m-edit').classList.add('hidden')" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400"><i class="fa-solid fa-xmark text-xs"></i></button>
       </div>
       <div class="p-3 bg-slate-50 border-b border-slate-200">
         <h4 id="edit-title" class="text-[11px] font-bold text-slate-500 mb-2">Add product</h4>
+        <p class="text-[10px] text-slate-400 -mt-1 mb-2">Stock = what you have on hand now. It goes down with each sale and goes back up if a sale is voided. Leave empty to not track.</p>
         <input type="hidden" id="e-id">
         <div class="flex gap-2 mb-2">
-          <input id="e-name" placeholder="Item name" class="flex-1 text-xs border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-brand-500">
-          <input id="e-price" type="number" step="0.01" inputmode="decimal" placeholder="Price (₱)" class="w-24 text-xs border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-brand-500">
+          <input id="e-name" placeholder="Item name" class="flex-1 min-w-0 text-xs border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-brand-500">
+          <input id="e-price" type="number" step="0.01" inputmode="decimal" placeholder="Price ₱" class="w-20 text-xs border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-brand-500">
+          <input id="e-stock" type="number" step="1" min="0" inputmode="numeric" placeholder="Stock" title="Stock on hand. Leave empty to not track." class="w-20 text-xs border border-slate-300 rounded-xl p-2.5 focus:outline-none focus:border-brand-500">
         </div>
         <div class="flex gap-2">
           <button onclick="saveProduct()" class="t flex-1 bg-brand-600 text-white font-bold py-2 rounded-xl text-xs">Save item</button>
@@ -141,7 +152,7 @@ input{user-select:text;-webkit-user-select:text}
 
   <!-- CLOUD -->
   <div id="m-cloud" class="hidden absolute inset-0 bg-slate-950/70 z-40 flex items-center justify-center p-3">
-    <div class="bg-white rounded-3xl w-full max-w-sm h-[90%] flex flex-col shadow-2xl overflow-hidden">
+    <div class="bg-white rounded-3xl w-full max-w-sm lg:max-w-3xl h-[90%] flex flex-col shadow-2xl overflow-hidden">
       <div class="bg-slate-900 p-3.5 text-white flex justify-between items-center">
         <div class="flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i><h3 class="font-heading font-bold text-sm">Google Sheets sync</h3></div>
         <button onclick="el('m-cloud').classList.add('hidden')" class="w-7 h-7 rounded-full bg-slate-800 text-slate-400"><i class="fa-solid fa-xmark text-xs"></i></button>
@@ -227,8 +238,8 @@ input{user-select:text;-webkit-user-select:text}
 </div>
 
 <script>
-const APP_VERSION='2026-10-25.2';
-const DEFAULT_URL="https://script.google.com/macros/s/AKfycbyQ0yJXxgz-inZocAFVsYAJUzRPnEU334XfkzKpPQqilcydy77zncRYEyPcXhw9ccuH/exec";
+const APP_VERSION='2026-10-25.3';
+const DEFAULT_URL="https://script.google.com/macros/s/AKfycbzk_UoLWyA3UtB8euumBvpwL2Kbz5l1fwmZB15XvjCC4QOYVtk_Hene_YEGtQ3A77pS/exec";
 const DEFAULT_PRODUCTS=[25,50,75,100,150,200].map((p,i)=>({id:i+1,name:'Product '+(i+1),price:p,updatedAt:0}));
 const METHODS=[['Cash','fa-money-bill-wave'],['GCash','fa-mobile-screen'],['Card','fa-credit-card']];
 
@@ -279,45 +290,84 @@ function renderGrid(){
   const list=q?all.filter(p=>p.name.toLowerCase().includes(q)):all;
   el('prod-badge').textContent=q?`${list.length} of ${all.length}`:`${all.length} items`;
   const g=el('grid');g.innerHTML='';
-  if(!list.length){g.innerHTML=`<div class="col-span-2 text-center text-xs text-slate-400 py-6">${q?'No products match your search.':'No products yet. Tap Edit catalog to add one.'}</div>`;return}
+  if(!list.length){g.innerHTML=`<div class="col-span-3 text-center text-xs text-slate-400 py-8">${q?'No products match your search.':'No products yet. Open Catalog &amp; stock to add one.'}</div>`;return}
   list.forEach(p=>{
     const b=document.createElement('button');
-    b.className='pbtn glass-panel border border-slate-200 rounded-2xl p-3 flex flex-col justify-between items-center text-center shadow-sm h-24 active:scale-95 transition';
-    b.innerHTML=`<span class="font-bold text-xs line-clamp-2">${esc(p.name)}</span><span class="text-xs font-heading font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">${money(p.price)}</span>`;
+    b.id='card-'+p.id;
+    b.className='pbtn pcard relative bg-white border border-slate-200 rounded-2xl p-2.5 lg:p-4 flex flex-col justify-between text-left h-24 lg:h-32';
+    b.innerHTML=`<span id="inc-${p.id}" class="hidden absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-brand-600 text-white text-[10px] font-extrabold flex items-center justify-center shadow ring-2 ring-white"></span>
+      <span class="font-semibold text-[11px] lg:text-sm leading-snug line-clamp-2 text-slate-800">${esc(p.name)}</span>
+      <span class="flex items-end justify-between gap-1 w-full"><span class="font-heading font-extrabold text-xs lg:text-base text-slate-900">${money(p.price)}</span><span id="stk-${p.id}" class="hidden"></span></span>`;
     let timer,long=false,cancelled=false,sx=0,sy=0;
-    b.addEventListener('pointerdown',e=>{long=false;cancelled=false;sx=e.clientX;sy=e.clientY;timer=setTimeout(()=>{long=true;openQty(p)},500)});
+    b.addEventListener('pointerdown',e=>{if(e.button>0)return;long=false;cancelled=false;sx=e.clientX;sy=e.clientY;timer=setTimeout(()=>{long=true;openQty(p)},500)});
     b.addEventListener('pointermove',e=>{if(Math.hypot(e.clientX-sx,e.clientY-sy)>10){cancelled=true;clearTimeout(timer)}});
     ['pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>{cancelled=true;clearTimeout(timer)}));
-    b.addEventListener('pointerup',()=>{clearTimeout(timer);if(!long&&!cancelled)addToCart(p.id,1)});
-    b.addEventListener('contextmenu',e=>e.preventDefault());
+    b.addEventListener('pointerup',e=>{clearTimeout(timer);if(e.button>0)return;if(!long&&!cancelled)addToCart(p.id,1)});
+    b.addEventListener('contextmenu',e=>{e.preventDefault();clearTimeout(timer);openQty(p)});
     g.appendChild(b);
+  });
+  refreshStock();
+}
+/* ---------- stock: on hand minus sales logged since it was last counted (works across all devices) ---------- */
+function saleEntries(){
+  const m=new Map();
+  if(cloudLight)cloudLight.forEach(([id,a,L])=>m.set(id,[a,L||[]]));
+  salesHistory.forEach(s=>{
+    if(isVoid(s))m.delete(s.transactionId);
+    else m.set(s.transactionId,[+s.totalAmount||0,(Array.isArray(s.lines)?s.lines:[]).map(l=>[l.id,l.qty])]);
+  });
+  return [...m].map(([id,[a,L]])=>({id,a,L,ms:Number(String(id).replace(/\D/g,''))||0}));
+}
+function remaining(p,E){
+  if(p.stock==null)return Infinity;
+  E=E||saleEntries();const since=+p.stockAt||0,k=String(p.id);let sold=0;
+  E.forEach(e=>{if(e.ms>=since)e.L.forEach(([pid,q])=>{if(String(pid)===k)sold+=+q||0})});
+  return p.stock-sold;
+}
+function refreshStock(){
+  const E=saleEntries();
+  live().forEach(p=>{
+    const chip=el('stk-'+p.id);if(!chip)return;
+    const c=cart.find(i=>i.product.id===p.id),qn=c?c.qty:0,inc=el('inc-'+p.id),card=el('card-'+p.id);
+    if(inc){inc.textContent=qn;inc.classList.toggle('hidden',!qn)}
+    if(p.stock==null){chip.className='hidden';if(card)card.classList.remove('opacity-50');return}
+    const left=remaining(p,E)-qn;
+    chip.textContent=left<=0?'Out':left+' left';
+    chip.className='text-[9px] lg:text-[11px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap '+(left<=0?'bg-rose-50 text-rose-600':left<=5?'bg-amber-50 text-amber-700':'bg-emerald-50 text-emerald-700');
+    if(card)card.classList.toggle('opacity-50',left<=0);
   });
 }
 
 /* ---------- cart ---------- */
 const total=()=>cart.reduce((s,i)=>s+i.product.price*i.qty,0);
 const count=()=>cart.reduce((s,i)=>s+i.qty,0);
-function addToCart(id,q){const p=live().find(x=>x.id===id);if(!p)return;const c=cart.find(i=>i.product.id===id);c?c.qty+=q:cart.push({product:p,qty:q});renderCart()}
-function updQty(id,d){const i=cart.findIndex(x=>x.product.id===id);if(i<0)return;cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);renderCart()}
+function addToCart(id,q){
+  const p=live().find(x=>x.id===id);if(!p)return false;
+  const c=cart.find(i=>i.product.id===id),have=c?c.qty:0,rem=remaining(p);
+  if(rem!==Infinity&&have+q>rem){toast(rem-have<=0?`${p.name} is out of stock`:`Only ${rem} of ${p.name} left`);return false}
+  c?c.qty+=q:cart.push({product:p,qty:q});renderCart();return true;
+}
+function updQty(id,d){if(d>0){addToCart(id,d);return}const i=cart.findIndex(x=>x.product.id===id);if(i<0)return;cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);renderCart()}
 function clearCart(){cart=[];renderCart()}
 function renderCart(){
   el('cart-count').textContent=count();
   el('cart-total').textContent=money(total());
   el('btn-checkout').disabled=!cart.length;
   const box=el('cart-items');
-  if(!cart.length){box.innerHTML=`<div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs"><i class="fa-solid fa-basket-shopping text-2xl text-slate-300 mb-2"></i><span class="font-medium">Your basket is empty</span><span class="text-[10px]">Tap an item below to add it</span></div>`;return}
-  box.innerHTML=cart.map(i=>`<div class="flex justify-between items-center py-1.5 text-xs">
-    <div class="flex-1 min-w-0 pr-2"><div class="font-bold truncate">${esc(i.product.name)}</div><div class="text-[10px] text-slate-400">${money(i.product.price)} × ${i.qty}</div></div>
-    <div class="flex items-center gap-2"><div class="flex items-center border border-slate-200 rounded-lg bg-slate-50 overflow-hidden">
-      <button onclick="updQty(${i.product.id},-1)" class="px-2.5 py-1 font-bold active:bg-slate-300">−</button><span class="px-1.5 font-bold">${i.qty}</span>
-      <button onclick="updQty(${i.product.id},1)" class="px-2.5 py-1 font-bold active:bg-slate-300">+</button></div>
-      <span class="font-heading font-extrabold text-right w-16">${money(i.product.price*i.qty)}</span></div></div>`).join('');
+  if(!cart.length){box.innerHTML=`<div class="h-full flex flex-col items-center justify-center text-slate-300 text-xs gap-1 py-4"><i class="fa-solid fa-basket-shopping text-3xl"></i><span class="font-semibold text-slate-400">Order is empty</span><span class="text-[10px] text-slate-400">Tap a product to add it</span></div>`}
+  else box.innerHTML=cart.map(i=>`<div class="flex justify-between items-center py-2 text-xs lg:text-[13px]">
+    <div class="flex-1 min-w-0 pr-2"><div class="font-semibold truncate">${esc(i.product.name)}</div><div class="text-[10px] lg:text-[11px] text-slate-400">${money(i.product.price)} each</div></div>
+    <div class="flex items-center gap-2.5"><div class="flex items-center border border-slate-200 rounded-lg bg-slate-50 overflow-hidden">
+      <button onclick="updQty(${i.product.id},-1)" class="px-2.5 py-1 font-bold hover:bg-slate-200 active:bg-slate-300">−</button><span class="px-1.5 font-bold min-w-[1.5rem] text-center">${i.qty}</span>
+      <button onclick="updQty(${i.product.id},1)" class="px-2.5 py-1 font-bold hover:bg-slate-200 active:bg-slate-300">+</button></div>
+      <span class="font-heading font-extrabold text-right w-[4.5rem]">${money(i.product.price*i.qty)}</span></div></div>`).join('');
+  refreshStock();
 }
 
 /* ---------- custom qty ---------- */
 function openQty(p){qtyProduct=p;el('qty-name').textContent=p.name;el('qty-price').textContent='Unit price: '+money(p.price);el('qty-input').value='1';qtyFresh=true;el('m-qty').classList.remove('hidden')}
 function closeQty(){el('m-qty').classList.add('hidden');qtyProduct=null}
-function confirmQty(){const q=parseInt(el('qty-input').value,10);if(q>0&&qtyProduct){addToCart(qtyProduct.id,q);toast(`Added ${q}× ${qtyProduct.name}`)}closeQty()}
+function confirmQty(){const q=parseInt(el('qty-input').value,10);if(q>0&&qtyProduct&&addToCart(qtyProduct.id,q))toast(`Added ${q}× ${qtyProduct.name}`);closeQty()}
 
 /* ---------- checkout ---------- */
 function drawMethods(){
@@ -377,8 +427,9 @@ function finishSale(){el('m-ty').classList.add('hidden');closeCheckout();clearCa
 /* ---------- catalog editor ---------- */
 function openEdit(){resetForm();renderEditList();el('m-edit').classList.remove('hidden')}
 function renderEditList(){
+  const E=saleEntries();
   el('edit-list').innerHTML=live().map(p=>`<div class="flex justify-between items-center p-2.5 bg-white border border-slate-200 rounded-xl text-xs shadow-sm">
-    <div class="min-w-0 pr-2"><div class="font-bold truncate">${esc(p.name)}</div><div class="text-[10px] text-emerald-600 font-bold">${money(p.price)}</div></div>
+    <div class="min-w-0 pr-2"><div class="font-bold truncate">${esc(p.name)}</div><div class="text-[10px] text-emerald-600 font-bold">${money(p.price)}${p.stock==null?' <span class="text-slate-400 font-semibold">· stock not tracked</span>':` <span class="${remaining(p,E)<=5?'text-amber-600':'text-slate-500'} font-semibold">· ${Math.max(0,remaining(p,E))} in stock</span>`}</div></div>
     <div class="flex gap-1.5 shrink-0"><button onclick="editProduct(${p.id})" class="px-2.5 py-1 bg-slate-100 rounded-lg font-bold">Edit</button>
     <button onclick="deleteProduct(${p.id})" class="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-lg font-bold">Delete</button></div></div>`).join('')
     ||'<div class="text-center text-xs text-slate-400 py-6">No products yet.</div>';
@@ -391,15 +442,19 @@ function productsChanged(){
 function saveProduct(){
   const id=el('e-id').value,name=el('e-name').value.trim(),price=parseFloat(el('e-price').value);
   if(!name||isNaN(price)||price<0){toast('Enter a name and a valid price');return}
-  if(id){const p=products.find(x=>x.id===+id);if(p){p.name=name;p.price=price;p.updatedAt=nowC()}
+  const sv=el('e-stock').value.trim(),stock=sv===''?null:Math.floor(+sv);
+  if(sv!==''&&(isNaN(stock)||stock<0)){toast('Stock must be 0 or more');return}
+  if(id){const p=products.find(x=>x.id===+id);if(p){p.name=name;p.price=price;p.updatedAt=nowC();
+      const cur=p.stock==null?null:Math.max(0,remaining(p));
+      if(stock!==cur){p.stock=stock;p.stockAt=nowC()}}
     cart.forEach(c=>{if(c.product.id===+id)c.product=products.find(x=>x.id===+id)})}
-  else products.push({id:Date.now(),name,price,updatedAt:nowC()});
+  else products.push({id:Date.now(),name,price,stock,stockAt:nowC(),updatedAt:nowC()});
   resetForm();productsChanged();toast('Catalog updated');
 }
 function editProduct(id){const p=live().find(x=>x.id===id);if(!p)return;
-  el('e-id').value=p.id;el('e-name').value=p.name;el('e-price').value=p.price;
+  el('e-id').value=p.id;el('e-name').value=p.name;el('e-price').value=p.price;el('e-stock').value=p.stock==null?'':Math.max(0,remaining(p));
   el('edit-title').textContent='Edit item';el('e-cancel').classList.remove('hidden')}
-function resetForm(){el('e-id').value='';el('e-name').value='';el('e-price').value='';el('edit-title').textContent='Add product';el('e-cancel').classList.add('hidden')}
+function resetForm(){el('e-id').value='';el('e-name').value='';el('e-price').value='';el('e-stock').value='';el('edit-title').textContent='Add product';el('e-cancel').classList.add('hidden')}
 function deleteProduct(id){
   const p=live().find(x=>x.id===id);if(!p||!confirm(`Delete "${p.name}"?`))return;
   p.deleted=true;p.updatedAt=nowC();            // kept as a delete marker so other devices delete it too
@@ -483,7 +538,7 @@ function needV2(){if(srvV>=2)return true;toast('Update the Apps Script (Code.gs)
 function saleChanged(s,msg){
   ls.set('pos_sales_history',salesHistory);
   queue.push({_op:'update',transactionId:s.transactionId,sale:JSON.parse(JSON.stringify(s))});ls.set('pos_pending_sync',queue);
-  drawBadge();drawCloud();toast(msg);syncAll();
+  drawBadge();drawCloud();refreshStock();toast(msg);syncAll();
 }
 function saveSale(){
   const s=sd&&findSale(sd.id);if(!s||!needV2())return;
@@ -565,7 +620,7 @@ async function syncAll(manual){
       });
       // a sale that was in the sheet before but is gone now was deleted there: remove it here too (unsent sales are kept)
       if(serverIds)salesHistory=salesHistory.filter(s=>!(serverIds.has(s.transactionId)&&!ids.has(s.transactionId)&&!queue.some(q=>!q._op&&q.transactionId===s.transactionId)));
-      cloudLight=(d.sales||[]).filter(r=>(r.status||'Completed')!=='VOID').map(r=>[String(r.transactionId),+r.totalAmount||0]);ls.set('pos_cloud_light',cloudLight);
+      cloudLight=(d.sales||[]).filter(r=>(r.status||'Completed')!=='VOID').map(r=>[String(r.transactionId),+r.totalAmount||0,(fromWire(r).lines||[]).map(l=>[l.id,l.qty])]);ls.set('pos_cloud_light',cloudLight);
       serverIds=ids;ls.set('pos_server_ids',[...ids]);
       salesHistory.sort((a,b)=>sortKey(b)-sortKey(a));
       salesHistory=salesHistory.slice(0,300);ls.set('pos_sales_history',salesHistory);
@@ -574,7 +629,7 @@ async function syncAll(manual){
   lastErr=err?(err.message||String(err)):'';
   syncing=false;
   syncState=err?(navigator.onLine?'error':'offline'):'ok';
-  drawBadge();
+  drawBadge();refreshStock();
   if(!el('m-cloud').classList.contains('hidden'))drawCloud();
   if(manual)toast(err?'Sync failed: '+(err.message||'check the URL'):'Synced with Google Sheets');
 }
@@ -603,11 +658,9 @@ function drawBadge(){
 }
 function openCloud(){el('url-input').value=sheetUrl;drawCloud();el('m-cloud').classList.remove('hidden');syncAll()}
 function revenue(){
-  const pend=salesHistory.filter(s=>!isVoid(s)&&!(serverIds&&cloudLight&&serverIds.has(s.transactionId))).map(s=>[s.transactionId,+s.totalAmount||0]);
-  const all=(serverIds&&cloudLight?cloudLight:[]).concat(pend),day=new Date().toDateString();
-  let tot=0,today=0;
-  all.forEach(([id,a])=>{tot+=a;const ms=Number(String(id).replace(/\D/g,''));if(ms&&new Date(ms).toDateString()===day)today+=a});
-  return {tot:round2(tot),today:round2(today),n:all.length};
+  const day=new Date().toDateString();let tot=0,today=0,n=0;
+  saleEntries().forEach(e=>{tot+=e.a;n++;if(e.ms&&new Date(e.ms).toDateString()===day)today+=e.a});
+  return {tot:round2(tot),today:round2(today),n};
 }
 function drawCloud(){
   const n=queue.length+(prodDirty?1:0);
@@ -654,6 +707,14 @@ async function checkUpdate(manual){
 }
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+
+/* ---------- desktop keyboard: type amounts, Backspace, Enter ---------- */
+document.addEventListener('keydown',e=>{
+  if(el('view-checkout').classList.contains('hidden')||!el('m-ty').classList.contains('hidden'))return;
+  if(e.key==='Enter'){e.preventDefault();completeSale()}
+  else if(e.key==='Escape')closeCheckout();
+  else if(method==='Cash'){if(/^[0-9]$/.test(e.key))keypad(e.key);else if(e.key==='Backspace')keypad('DEL')}
+});
 
 /* ---------- start: render from local cache instantly, sync in background ---------- */
 renderGrid();renderCart();drawBadge();
